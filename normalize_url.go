@@ -15,7 +15,3 @@ func normalizeURL(URLString string) (string, error) {
 	parsedURL := strings.ToLower(strings.TrimRight(unparsedURL.Host+unparsedURL.Path, "/ "))
 	return parsedURL, nil
 }
-
-func getURLsFromHTLM(htmlBody, rawBasedURL string) ([]string, error) {
-	return nil, nil
-}
