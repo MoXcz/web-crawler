@@ -17,5 +17,12 @@ func main() {
 		os.Exit(1)
 	}
 
-	fmt.Printf("starting crawl of: %s\n", os.Args[1])
+	argPage := os.Args[1]
+	pages := map[string]int{}
+	fmt.Printf("starting crawl of: %s\n", argPage)
+	crawlPage(argPage, argPage, pages)
+
+	for page, count := range pages {
+		fmt.Printf("%d - %s\n", count, page)
+	}
 }
