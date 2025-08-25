@@ -7,9 +7,19 @@ import (
 	"net/http"
 	"net/url"
 	"strings"
+	"sync"
 )
 
-func crawlPage(rawBaseURL, rawCurrentURL string, pages map[string]int) {
+type config struct {
+	pages              map[string]int
+	baseURL            *url.URL
+	mu                 *sync.Mutex
+	concurrencyControl chan struct{}
+	wg                 *sync.WaitGroup
+}
+
+func (cfg *config) crawlPage(rawCurrentURL string) {
+	rawBaseURL := cfg.baseURL.String()
 	eq, err := compareHostURLs(rawBaseURL, rawCurrentURL)
 	if err != nil {
 		log.Fatalln(err)
@@ -26,11 +36,11 @@ func crawlPage(rawBaseURL, rawCurrentURL string, pages map[string]int) {
 		return
 	}
 
-	if _, ok := pages[normCurrentURL]; ok {
-		pages[normCurrentURL]++
+	if _, ok := cfg.pages[normCurrentURL]; ok {
+		cfg.pages[normCurrentURL]++
 		return
 	}
-	pages[normCurrentURL] = 1
+	cfg.pages[normCurrentURL] = 1
 	fmt.Printf("Crawling page: %s\n", rawCurrentURL)
 	html, err := getHTML(rawCurrentURL)
 	if err != nil {
@@ -45,7 +55,7 @@ func crawlPage(rawBaseURL, rawCurrentURL string, pages map[string]int) {
 	}
 
 	for _, link := range links {
-		crawlPage(rawBaseURL, link, pages)
+		cfg.crawlPage(link)
 	}
 }
 

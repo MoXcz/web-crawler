@@ -2,6 +2,7 @@ package main
 
 import (
 	"fmt"
+	"net/url"
 	"os"
 )
 
@@ -18,9 +19,17 @@ func main() {
 	}
 
 	argPage := os.Args[1]
+	parsedURL, err := url.Parse(argPage)
+	if err != nil {
+		return
+	}
 	pages := map[string]int{}
+	cfg := config{
+		pages:   pages,
+		baseURL: parsedURL,
+	}
 	fmt.Printf("starting crawl of: %s\n", argPage)
-	crawlPage(argPage, argPage, pages)
+	cfg.crawlPage(argPage)
 
 	for page, count := range pages {
 		fmt.Printf("%d - %s\n", count, page)
