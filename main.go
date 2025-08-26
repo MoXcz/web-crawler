@@ -25,7 +25,7 @@ func main() {
 		return
 	}
 	pages := map[string]int{}
-	ch := make(chan struct{}, 1)
+	ch := make(chan struct{}, 5)
 	wg := &sync.WaitGroup{}
 	mu := &sync.Mutex{}
 
@@ -39,7 +39,8 @@ func main() {
 
 	fmt.Printf("starting crawl of: %s\n", argPage)
 
-	cfg.crawlPage(argPage)
+	wg.Add(1)
+	go cfg.crawlPage(argPage)
 
 	wg.Wait()
 	defer close(ch)

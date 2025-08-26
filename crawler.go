@@ -19,6 +19,12 @@ type config struct {
 }
 
 func (cfg *config) crawlPage(rawCurrentURL string) {
+	cfg.concurrencyControl <- struct{}{}
+	defer func() {
+		cfg.wg.Done()
+		func() { <-cfg.concurrencyControl }()
+	}()
+
 	rawBaseURL := cfg.baseURL.String()
 	eq, err := compareHostURLs(rawBaseURL, rawCurrentURL)
 	if err != nil {
@@ -27,6 +33,11 @@ func (cfg *config) crawlPage(rawCurrentURL string) {
 	}
 	if !eq {
 		log.Printf("%s has not the same domain as %s\n", rawBaseURL, rawCurrentURL)
+		return
+	}
+
+	normLink, err := normalizeURL(rawCurrentURL)
+	if !cfg.addPageVisit(normLink) {
 		return
 	}
 
@@ -43,31 +54,9 @@ func (cfg *config) crawlPage(rawCurrentURL string) {
 		return
 	}
 
-	normBaseURL, err := normalizeURL(rawBaseURL)
-	if err != nil {
-		log.Fatal(err)
-		return
-	}
-
-	cfg.addPageVisit(normBaseURL)
-
 	for _, link := range links {
-		normLink, err := normalizeURL(link)
-		if err != nil {
-			log.Fatal(err)
-			continue
-		}
-		if !cfg.addPageVisit(normLink) {
-			continue
-		}
-
 		cfg.wg.Add(1)
-		go func(link string) {
-			cfg.concurrencyControl <- struct{}{}
-			defer cfg.wg.Done()
-			defer func() { <-cfg.concurrencyControl }()
-			cfg.crawlPage(link)
-		}(link)
+		go cfg.crawlPage(link)
 	}
 }
 
