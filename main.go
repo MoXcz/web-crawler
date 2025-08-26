@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"net/url"
 	"os"
+	"sync"
 )
 
 func main() {
@@ -24,12 +25,24 @@ func main() {
 		return
 	}
 	pages := map[string]int{}
+	ch := make(chan struct{}, 1)
+	wg := &sync.WaitGroup{}
+	mu := &sync.Mutex{}
+
 	cfg := config{
-		pages:   pages,
-		baseURL: parsedURL,
+		pages:              pages,
+		baseURL:            parsedURL,
+		concurrencyControl: ch,
+		wg:                 wg,
+		mu:                 mu,
 	}
+
 	fmt.Printf("starting crawl of: %s\n", argPage)
+
 	cfg.crawlPage(argPage)
+
+	wg.Wait()
+	defer close(ch)
 
 	for page, count := range pages {
 		fmt.Printf("%d - %s\n", count, page)

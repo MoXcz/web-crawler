@@ -30,17 +30,6 @@ func (cfg *config) crawlPage(rawCurrentURL string) {
 		return
 	}
 
-	normCurrentURL, err := normalizeURL(rawCurrentURL)
-	if err != nil {
-		log.Fatal(err)
-		return
-	}
-
-	if _, ok := cfg.pages[normCurrentURL]; ok {
-		cfg.pages[normCurrentURL]++
-		return
-	}
-	cfg.pages[normCurrentURL] = 1
 	fmt.Printf("Crawling page: %s\n", rawCurrentURL)
 	html, err := getHTML(rawCurrentURL)
 	if err != nil {
@@ -54,13 +43,36 @@ func (cfg *config) crawlPage(rawCurrentURL string) {
 		return
 	}
 
+	normBaseURL, err := normalizeURL(rawBaseURL)
+	if err != nil {
+		log.Fatal(err)
+		return
+	}
+
+	cfg.addPageVisit(normBaseURL)
+
 	for _, link := range links {
-		cfg.crawlPage(link)
+		normLink, err := normalizeURL(link)
+		if err != nil {
+			log.Fatal(err)
+			continue
+		}
+		if !cfg.addPageVisit(normLink) {
+			continue
+		}
+
+		cfg.wg.Add(1)
+		go func(link string) {
+			cfg.concurrencyControl <- struct{}{}
+			defer cfg.wg.Done()
+			defer func() { <-cfg.concurrencyControl }()
+			cfg.crawlPage(link)
+		}(link)
 	}
 }
 
 func compareHostURLs(rawBaseURL, rawCurrentURL string) (bool, error) {
-	basedURL, err := url.Parse(rawBaseURL)
+	baseURL, err := url.Parse(rawBaseURL)
 	if err != nil {
 		return false, fmt.Errorf("could not parse URL string")
 	}
@@ -70,7 +82,7 @@ func compareHostURLs(rawBaseURL, rawCurrentURL string) (bool, error) {
 		return false, fmt.Errorf("could not parse URL string")
 	}
 
-	if basedURL.Hostname() != currentURL.Hostname() {
+	if baseURL.Hostname() != currentURL.Hostname() {
 		return false, nil
 	}
 	return true, nil
@@ -96,4 +108,15 @@ func getHTML(rawURL string) (string, error) {
 		return "", err
 	}
 	return string(htmlContent), nil
+}
+
+func (cfg *config) addPageVisit(normalizedURL string) (isFirst bool) {
+	cfg.mu.Lock()
+	defer cfg.mu.Unlock()
+	if _, ok := cfg.pages[normalizedURL]; ok {
+		cfg.pages[normalizedURL]++
+		return false
+	}
+	cfg.pages[normalizedURL] = 1
+	return true
 }
