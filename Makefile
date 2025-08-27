@@ -1,5 +1,5 @@
 run: build
-	@./crawler https://mocosmo.me
+	@./crawler https://mocosmo.me 5 10
 
 build:
 	@go build -o crawler
