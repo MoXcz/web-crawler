@@ -23,3 +23,12 @@ cd web-crawler
 go run .
 ```
 
+Or if you as I prefer it:
+
+```sh
+git clone https://github.com/MoXcz/web-crawler
+cd web-crawler
+make run
+make test
+```
+
