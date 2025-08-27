@@ -117,3 +117,45 @@ func (cfg *config) addPageVisit(normalizedURL string) (isFirst bool) {
 	cfg.pages[normalizedURL] = 1
 	return true
 }
+
+type Page struct {
+	Link    string
+	CountTo int
+}
+
+func printReport(pages map[string]int, baseURL string) {
+	fmt.Printf(`
+
+===================================
+REPORT for %s
+===================================
+`, baseURL)
+
+	orderedPages := sortPages(pages)
+
+	for _, page := range orderedPages {
+		fmt.Printf("Found %d internal links to %s\n", page.CountTo, page.Link)
+	}
+}
+
+func sortPages(pages map[string]int) []Page {
+	structPages := []Page{}
+	for page, count := range pages {
+		structPage := Page{
+			Link:    page,
+			CountTo: count,
+		}
+		structPages = append(structPages, structPage)
+	}
+
+	for i := range structPages {
+		j := i
+		for j > 0 && structPages[j-1].CountTo <= structPages[j].CountTo {
+			curr := structPages[j]
+			structPages[j] = structPages[j-1]
+			structPages[j-1] = curr
+			j -= 1
+		}
+	}
+	return structPages
+}

@@ -61,7 +61,5 @@ func main() {
 
 	cfg.wg.Wait()
 
-	for page, count := range pages {
-		fmt.Printf("%d - %s\n", count, page)
-	}
+	printReport(cfg.pages, cfg.baseURL.String())
 }
