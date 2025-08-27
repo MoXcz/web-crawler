@@ -48,7 +48,7 @@ func getURLs(root *html.Node) []string {
 func cleanURLs(links []string, rawBasedURL string) []string {
 	var cleanLinks []string
 	for _, link := range links {
-		if link[0] == '/' {
+		if len(link) > 0 && link[0] == '/' {
 			link = rawBasedURL + link
 		}
 		cleanLinks = append(cleanLinks, strings.Trim(link, " "))

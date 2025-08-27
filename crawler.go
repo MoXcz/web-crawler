@@ -16,14 +16,22 @@ type config struct {
 	mu                 *sync.Mutex
 	concurrencyControl chan struct{}
 	wg                 *sync.WaitGroup
+	maxPages           int
 }
 
 func (cfg *config) crawlPage(rawCurrentURL string) {
 	cfg.concurrencyControl <- struct{}{}
 	defer func() {
+		<-cfg.concurrencyControl
 		cfg.wg.Done()
-		func() { <-cfg.concurrencyControl }()
 	}()
+
+	cfg.mu.Lock()
+	if len(cfg.pages) >= cfg.maxPages {
+		cfg.mu.Unlock()
+		return
+	}
+	cfg.mu.Unlock()
 
 	rawBaseURL := cfg.baseURL.String()
 	eq, err := compareHostURLs(rawBaseURL, rawCurrentURL)
